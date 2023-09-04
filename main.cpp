@@ -13,6 +13,7 @@
 #define BOT_TOKEN "5772149955:AAEOTIgI1e9DKbj5io_roD64VYS2o3zoKa8"
 
 const unsigned long BOT_MTBS = 1000; // mean time between scan messages
+const unsigned long MINUTES_3 = 180000; // 3 minutos en milisegundos
 
 int ledAmarillo = 14; // Pin del LED amarillo
 int ledPin = 27; //pin del LED rojo
@@ -51,6 +52,9 @@ String pass="999"; //Password que se debe ingresar
 String newNum="1234";
 int numErrores=0;
 String passIngresado; //Pasword que se esta ingresando en el teclado
+
+unsigned long startTime = 0;
+bool timerRunning = false;
 
 
 #pragma GCC optimize ("O3")   //code optimisation controls - "O2" & "O3" code performance, "Os" code size
@@ -95,7 +99,7 @@ void handleNewMessages(int numNewMessages)
                     welcome += "Me llamo KeyGuardian. Soy tu Bot para abrir la caja fuerte.\n\n";
                     welcome+="/abrir: ingresa este comando para iniciar el proceso de abrir la caja fuerte\n";
                     bot.sendMessage(chat_id, welcome);
-                    pass=random(1000, 9999);
+                    
 
             }
       }
@@ -138,12 +142,11 @@ void handleNewMessages(int numNewMessages)
           bot.sendMessage(chat_id, "Acceso concedido!!");
           delay(3000);
           int randomCode = random(1000, 9999); 
-          pass=randomCode;
-          bot.sendMessage(chat_id, "Abre a la caja fuerte con el numero: " +  String(pass));
-          bot.sendMessage(chat_id, "Solo tienes 3 minutos!!" );
-          delay(60000);//1 min para demostración                          
-          pass = randomCode;
-          bot.sendMessage(chat_id, "Se acabo el tiempo." );
+          pass = String(randomCode);
+          bot.sendMessage(chat_id, "Abre la caja fuerte con el numero: " + pass);
+          bot.sendMessage(chat_id, "Solo tienes 3 minutos!!");
+          startTime = millis();
+          timerRunning = true;
           numProcess = 0; 
         }              
 
@@ -153,11 +156,15 @@ void handleNewMessages(int numNewMessages)
         newNum=text;
         bot.sendMessage(chat_id, "Ingresa el NUEVO numero clave:");
         numProcess = 2;   
-      }
+      }   
 
-     else{}
-     
-
+  }
+}
+void checkTimer() {
+  if (timerRunning && millis() - startTime >= MINUTES_3) {
+    timerRunning = false;
+    pass = random(1000, 9999);
+    bot.sendMessage(chat_id, "Se acabo el tiempo.");
   }
 }
 
@@ -280,7 +287,7 @@ void loop() {
           servo.write(0);
           delay(2000);
           lcd.clear( ); 
-          lcd.print("Tienes "+ String(3-numErrores) + " intentos");
+          lcd.print("Tiene "+ String(3-numErrores) + " intentos");
           delay(2000);//para que se muestre el mensaje y no se borre rapido
           lcd.clear( );
         }
@@ -300,7 +307,7 @@ void loop() {
 
 }
 
-    
+    checkTimer();
     if (millis() - bot_lasttime > BOT_MTBS)
     {
       int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
